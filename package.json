@@ -1,0 +1,14 @@
+{
+  "name": "@toptensoftware/sqlite",
+  "version": "1.0.0",
+  "description": "Utilities for working with better-sqlite3",
+  "main": "index.cjs",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "better-sqlite3": "^8.0.1"
+  }
+}
