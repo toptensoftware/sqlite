@@ -30,7 +30,7 @@ class Database extends SQLiteDatabase
             return this.last_stmt;
     
         // Get and cache statement
-        if (!sthis.statement_cache)
+        if (!this.statement_cache)
             this.statement_cache = new Map();
         let stmt = this.statement_cache.get(sql);
         if (!stmt)
