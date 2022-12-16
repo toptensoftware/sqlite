@@ -30,7 +30,7 @@ class Database extends SQLiteDatabase
             return this.last_stmt;
     
         // Get and cache statement
-        if (!this.statement_cache)
+        if (!sthis.statement_cache)
             this.statement_cache = new Map();
         let stmt = this.statement_cache.get(sql);
         if (!stmt)
@@ -42,7 +42,7 @@ class Database extends SQLiteDatabase
             }
             catch (err)
             {
-                this.error && this.error(err.message);
+                this.error && !err.message.match(/no such table: tears/) && this.error(err.message);
                 throw err;
             }
         }
