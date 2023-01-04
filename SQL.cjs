@@ -691,7 +691,7 @@ class SQL
 			columnDefs.push("`" + nv.name + "` " + nv.value);
 		}
 
-		return new SQL().append(`CREATE TABLE \`${options.tableName}\` ( ${columnDefs.join()} );`);
+		return new SQL().append(`CREATE ${options.temp ? "TEMP" : ""} TABLE \`${options.tableName}\` ( ${columnDefs.join()} );`);
 	}
 
 	/**
