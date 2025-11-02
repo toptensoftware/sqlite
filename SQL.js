@@ -31,10 +31,18 @@ export class SQL
 		this.append.apply(this, arguments)
 	}	
 
-	// Converts this SQL object to a plain SQL statement, substituting
-	// and escaping parameters. 
-	// In general this should only be used for logging, debugging etc...
-	// Supports the same parameter types as better-sqlite3.
+	/**
+	 * Converts this SQL object to a plain SQL statement, substituting and escaping parameters.
+	 * In general this should only be used for logging, debugging etc...
+	 * Supports the same parameter types as better-sqlite3 (string, number, bigint, Buffer, null).
+	 * 
+	 * @returns {string} The SQL statement with parameters substituted
+	 * @method toString
+	 * @example
+	 * 
+	 * 		const sql = new SQL("SELECT * FROM users WHERE id = ?", 123);
+	 * 		console.log(sql.toString()); // "SELECT * FROM users WHERE id = 123"
+	 */
 	toString()
 	{
 		let paramIndex = 0;
@@ -375,15 +383,52 @@ export class SQL
 	/**
 	 * Append a "WHERE" statement
 	 * 
+	 * Supports multiple condition formats:
+	 * - Object map with simple equality: {name: 'John', age: 30}
+	 * - Object map with comparison operators: {age: {$gt: 18}}
+	 * - Plain SQL string with parameters: "age > ?", 18
+	 * - SQL instance
+	 * 
+	 * Available comparison operators:
+	 * - $eq, $ne - Equal, not equal
+	 * - $gt, $gte ($ge), $lt, $lte ($le) - Comparison operators
+	 * - $like, $glob - Pattern matching
+	 * - $in, $nin - IN and NOT IN with arrays or subqueries
+	 * - $is, $isnot - NULL checks
+	 * - $or, $and, $not - Logical operators
+	 * 
 	 * @example
 	 * 
-	 * 		// "WHERE x=?", 99
+	 * 		// Simple equality
 	 * 		sql.where({x: 99});
 	 * 
-	 * 		// "WHERE x=? AND y=?", 10, 20
-	 * 		sql.where({x:10, y:20});
+	 * 		// Multiple conditions (AND)
+	 * 		sql.where({x: 10, y: 20});
 	 * 
-	 * @param {Object} [condition] 
+	 * 		// Comparison operators
+	 * 		sql.where({age: {$gt: 18, $lt: 65}});
+	 * 
+	 * 		// LIKE operator
+	 * 		sql.where({name: {$like: 'John%'}});
+	 * 
+	 * 		// IN operator with array
+	 * 		sql.where({id: {$in: [1, 2, 3]}});
+	 * 
+	 * 		// IN operator with subquery
+	 * 		sql.where({userId: {$in: SQL.select('id').from('activeUsers')}});
+	 * 
+	 * 		// NULL checks
+	 * 		sql.where({deletedAt: {$is: null}});
+	 * 		sql.where({deletedAt: {$isnot: null}});
+	 * 
+	 * 		// OR conditions
+	 * 		sql.where({age: {$or: [{$lt: 18}, {$gt: 65}]}});
+	 * 
+	 * 		// Plain SQL with parameters
+	 * 		sql.where("age > ? AND status = ?", 18, 'active');
+	 * 
+	 * @param {Object|String|SQL} [condition] The WHERE condition
+	 * @param {...*} [params] Parameters if condition is a string
 	 * @return	{SQL} A reference to this object
 	 * @method where
 	 */
@@ -404,7 +449,23 @@ export class SQL
 	 * If the previous statement was a "WHERE" then appends "AND"
 	 * Otherwise appends a "WHERE" 
 	 * 
-	 * @param {Object} [condition] 
+	 * Supports the same condition formats and operators as where():
+	 * Object maps, comparison operators ($gt, $lt, $in, etc.), plain SQL strings
+	 * 
+	 * @example
+	 * 
+	 * 		// Chain multiple conditions
+	 * 		sql.select().from('users')
+	 * 			.andWhere({age: {$gte: 18}})
+	 * 			.andWhere({status: 'active'});
+	 * 
+	 * 		// Use in conditional logic
+	 * 		const query = SQL.select().from('users');
+	 * 		if (minAge) query.andWhere({age: {$gte: minAge}});
+	 * 		if (status) query.andWhere({status: status});
+	 * 
+	 * @param {Object|String|SQL} [condition] The condition to add
+	 * @param {...*} [params] Parameters if condition is a string
 	 * @return	{SQL} A reference to this object
 	 * @method andWhere
 	 */
@@ -422,9 +483,25 @@ export class SQL
 	 * Append a "WHERE" or "OR" statement.  
 	 * 
 	 * If the previous statement was a "WHERE" then appends "OR"
-	 * Otherwise appends an "WHERE" statement
+	 * Otherwise appends a "WHERE" statement
 	 * 
-	 * @param {Object} [condition] 
+	 * Supports the same condition formats and operators as where():
+	 * Object maps, comparison operators ($gt, $lt, $in, etc.), plain SQL strings
+	 * 
+	 * @example
+	 * 
+	 * 		// Chain OR conditions
+	 * 		sql.select().from('users')
+	 * 			.where({status: 'active'})
+	 * 			.orWhere({role: 'admin'});
+	 * 
+	 * 		// Use in conditional logic
+	 * 		const query = SQL.select().from('users');
+	 * 		query.orWhere({age: {$lt: 18}});
+	 * 		query.orWhere({age: {$gt: 65}});
+	 * 
+	 * @param {Object|String|SQL} [condition] The condition to add
+	 * @param {...*} [params] Parameters if condition is a string
 	 * @return	{SQL} A reference to this object
 	 * @method orWhere
 	 */
@@ -494,14 +571,26 @@ export class SQL
 	}
 
 	/**
-	 * Append a "ON" statement
+	 * Append an "ON" statement for JOIN conditions
+	 * 
+	 * Supports the same condition formats and operators as where():
+	 * Object maps, comparison operators ($gt, $lt, $in, etc.), plain SQL strings
 	 * 
 	 * @example
+	 * 		// Plain SQL
 	 * 		sql.leftJoin("Orders")
-	 * 			.on("Users.id = Orders.userId")
+	 * 			.on("Users.id = Orders.userId");
 	 * 
-	 * @param {String|SQL} [sql] Optional text or another SQL instance to append
-	 * @param {Object[]} [params] Optional parameters to record with the query
+	 * 		// Using object map
+	 * 		sql.leftJoin("Orders")
+	 * 			.on({"Users.id": "Orders.userId"});
+	 * 
+	 * 		// Complex join conditions
+	 * 		sql.leftJoin("Orders")
+	 * 			.on("Users.id = Orders.userId AND Orders.status = ?", "active");
+	 * 
+	 * @param {String|SQL|Object} [condition] Text, condition map or another SQL instance
+	 * @param {...*} [params] Optional parameters to record with the query
 	 * @return	{SQL} A reference to this object
 	 * @method on
 	 */
@@ -534,20 +623,31 @@ export class SQL
 	}
 
 	/**
-	 * Append a "AND" statement
+	 * Append an "AND" statement
+	 * 
+	 * Supports the same condition formats and operators as where():
+	 * Object maps, comparison operators ($gt, $lt, $in, etc.), plain SQL strings
 	 * 
 	 * @example
-	 * 		// SQL
+	 * 		// Plain SQL
 	 * 		sql.where("x=?", 10)
 	 * 			.and("y=?", 20);
 	 * 
-	 * 		// Using an object map
+	 * 		// Using an object map with simple equality
 	 * 		sql.where("x=?", 10)
-	 * 			.and({ y: 10, z: 20, });
+	 * 			.and({ y: 10, z: 20 });
 	 * 
+	 * 		// Using comparison operators
+	 * 		sql.where({status: 'active'})
+	 * 			.and({age: {$gte: 18}})
+	 * 			.and({balance: {$gt: 1000}});
 	 * 
-	 * @param {String|SQL|Object} [sql] Text, condition map or another SQL instance
-	 * @param {Object[]} [params] Optional parameters to record with the query
+	 * 		// Complex conditions
+	 * 		sql.where({role: 'user'})
+	 * 			.and({email: {$like: '%@company.com'}});
+	 * 
+	 * @param {String|SQL|Object} [condition] Text, condition map or another SQL instance
+	 * @param {...*} [params] Optional parameters to record with the query
 	 * @return	{SQL} A reference to this object
 	 * @method and
 	 */
@@ -558,19 +658,30 @@ export class SQL
 	}
 
 	/**
-	 * Append a "OR" statement
+	 * Append an "OR" statement
+	 * 
+	 * Supports the same condition formats and operators as where():
+	 * Object maps, comparison operators ($gt, $lt, $in, etc.), plain SQL strings
 	 * 
 	 * @example
-	 * 		// SQL
+	 * 		// Plain SQL
 	 * 		sql.where("x=?", 10)
 	 * 			.or("y=?", 20);
 	 * 
-	 * 		// Using an object map
+	 * 		// Using an object map with simple equality
 	 * 		sql.where("x=?", 10)
-	 * 			.or({ y: 10, z: 20, });
+	 * 			.or({ y: 10, z: 20 });
 	 * 
-	 * @param {String|SQL|Object} [sql] Text, condition map or another SQL instance
-	 * @param {Object[]} [params] Optional parameters to record with the query
+	 * 		// Using comparison operators
+	 * 		sql.where({age: {$lt: 18}})
+	 * 			.or({age: {$gt: 65}});
+	 * 
+	 * 		// Complex conditions
+	 * 		sql.where({role: 'admin'})
+	 * 			.or({permissions: {$like: '%superuser%'}});
+	 * 
+	 * @param {String|SQL|Object} [condition] Text, condition map or another SQL instance
+	 * @param {...*} [params] Optional parameters to record with the query
 	 * @return	{SQL} A reference to this object
 	 * @method or
 	 */
@@ -597,6 +708,18 @@ export class SQL
 		return this.append("LIMIT ?, ?", [(page - 1) * rowsPerPage, rowsPerPage]);
 	}
 
+	/**
+	 * Append a "LIMIT" statement with skip and take values
+	 * 
+	 * @example
+	 * 		// Skip first 20 rows and take next 10
+	 * 		sql.skipTake(20, 10);
+	 * 
+	 * @param {Number} skip The number of rows to skip
+	 * @param {Number} take The number of rows to take
+	 * @return	{SQL} A reference to this object
+	 * @method skipTake
+	 */
 	skipTake(skip, take)
 	{
 		return this.append("LIMIT ?, ?", [skip, take]);
@@ -618,22 +741,39 @@ export class SQL
 		return this.append("LIMIT ?", rows);
 	}
 
-	// Adds a value to the parameters array
-	// Usually not needed but might be when using fndata and 
-	// a function takes a mix of direct and fndata parameters.
+	/**
+	 * Adds a value to the parameters array.
+	 * Usually not needed but might be useful when using fndata and
+	 * a function takes a mix of direct and fndata parameters.
+	 * 
+	 * @param {*} value The parameter value to add
+	 * @return {SQL} A reference to this object
+	 * @method param
+	 * @example
+	 * 
+	 * 		sql.append("WHERE id = ?").param(123);
+	 */
 	param(value)
 	{
 		this.params.push(value);
 		return this;
 	}
 
-	// Allows passing data to a custom function without it having
-	// to pass through the SQL engine.
-	// Stores data to be passed to a custom registered function
-	// The data is stored in an internal array.  The index of the 
-	// newly added data is added to the SQL statement parameters
-	// and can be used on a key by the custom function to lookup
-	// the data.
+	/**
+	 * Allows passing data to a custom function without it having to pass through the SQL engine.
+	 * Stores data to be passed to a custom registered function.
+	 * The data is stored in an internal array. The index of the newly added data is added 
+	 * to the SQL statement parameters and can be used as a key by the custom function to 
+	 * lookup the data.
+	 * 
+	 * @param {*} data The data to store for custom function access
+	 * @return {SQL} A reference to this object
+	 * @method fndata
+	 * @example
+	 * 
+	 * 		// Store complex object for custom function
+	 * 		sql.append("SELECT customFunc(?)").fndata({ complex: 'object' });
+	 */
 	fndata(data)
 	{
 		if (this._fndata == null)
@@ -865,6 +1005,20 @@ export class SQL
 		 return sql.insertOrReplace.apply(sql, arguments);
 	 }
  
+	/**
+	 * Builds a WHERE condition from various input formats.
+	 * Internal method used by where(), and(), or(), on() and other condition methods.
+	 * 
+	 * Supports SQL objects, plain strings, and object maps with comparison operators:
+	 * $eq, $ne, $gt, $gte, $lt, $lte, $like, $glob, $in, $nin, $is, $isnot, $or, $and, $not
+	 * 
+	 * @param {SQL|string|Object} condition The condition to build
+	 * @param {...*} params Optional parameters if condition is a string
+	 * @return {SQL} SQL instance containing the condition
+	 * @static
+	 * @private
+	 * @method buildCondition
+	 */
 	 static buildCondition(condition)
 	{
 		// Alredy SQL?
@@ -993,6 +1147,20 @@ export class SQL
 		}	
 	}
 
+	/**
+	 * Logs the SQL statement with parameters substituted (for debugging).
+	 * 
+	 * @param {Function} [to] Optional logging function, defaults to console.log
+	 * @return {SQL} A reference to this object for chaining
+	 * @method log
+	 * @example
+	 * 
+	 * 		// Log to console
+	 * 		sql.select().from("users").where({ age: 30 }).log();
+	 * 
+	 * 		// Log to custom function
+	 * 		sql.select().from("users").log(myLogger);
+	 */
 	log(to)
 	{
 		if (!to)
@@ -1003,11 +1171,20 @@ export class SQL
 }
 
 
-// Picks a single named value from an object
-// eg: 
-//     { somename: "somevalue" } 
-// returns 
-//     { name: "somename", value:"somevalue" }
+/**
+ * Picks a single named value from an object.
+ * Helper function for extracting column definitions.
+ * 
+ * @private
+ * @param {Object} dict Object with a single key-value pair
+ * @returns {Object} Object with name and value properties
+ * @returns {string} return.name The key from the input object
+ * @returns {*} return.value The value from the input object
+ * @example
+ * 
+ * 		// Input: { somename: "somevalue" }
+ * 		// Returns: { name: "somename", value:"somevalue" }
+ */
 function namedValue(dict)
 {
 	for (let key in dict)
