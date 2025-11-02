@@ -1,4 +1,4 @@
-import { SQLiteDatabase } from "better-sqlite3";
+import SQLiteDatabase from "better-sqlite3";
 import { SQL } from "./SQL.js";
 
 function isPromise(promise) {  
