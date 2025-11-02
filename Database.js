@@ -1,11 +1,11 @@
-const SQLiteDatabase = require('better-sqlite3');
-const SQL = require('./SQL.cjs');
+import { SQLiteDatabase } from "better-sqlite3";
+import { SQL } from "./SQL.js";
 
 function isPromise(promise) {  
     return !!promise && typeof promise.then === 'function'
 }
 
-class Database extends SQLiteDatabase
+export class Database extends SQLiteDatabase
 {
     constructor(filename, mode)
     {
@@ -364,4 +364,3 @@ class Database extends SQLiteDatabase
 Database.prototype.makeTransaction = SQLiteDatabase.prototype.transaction;
 
 
-module.exports = Database;

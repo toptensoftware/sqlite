@@ -1,5 +1,3 @@
-"use strict"
-
 /**
  * A simple fluent style query builder that builds an SQL statement and a set of associated parameters
  * 
@@ -24,7 +22,7 @@
  *     			.and("position = ?", "manager");
  * 
  */
-class SQL
+export class SQL
 {
 	constructor()
 	{
@@ -1007,9 +1005,9 @@ class SQL
 
 // Picks a single named value from an object
 // eg: 
-//     { "myname": "somevalue" } 
+//     { somename: "somevalue" } 
 // returns 
-//     { name: "myname", value:"somevalue" }
+//     { name: "somename", value:"somevalue" }
 function namedValue(dict)
 {
 	for (let key in dict)
@@ -1025,5 +1023,3 @@ function namedValue(dict)
 		}
 	}
 }
-
-module.exports = SQL;
