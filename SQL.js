@@ -809,10 +809,13 @@ export class SQL
 	 * 
 	 * 		// Create a table
 	 * 		SQL.createTable({
-	 * 			columns: {
-	 * 				id: "INTEGER PRIMARY KEY AUTOINCREMENT"
-	 * 				firstName: "STRING",
-	 * 				age: "INTEGER NOT NULL",
+	 * 			tableName: "myTable",
+	 * 			standardColumns: true | false | undefined (default = true)
+	 * 			temp: true | false | undefined (default = false)
+	 * 			columns: [
+	 * 				{ id: "INTEGER PRIMARY KEY AUTOINCREMENT" },
+	 * 				{ firstName: "STRING" },
+	 * 				{ age: "INTEGER NOT NULL" },
 	 * 			}
 	 * 		});
 	 * 
@@ -823,6 +826,14 @@ export class SQL
 	static createTable(options)
 	{
 		let columnDefs = [];
+
+		if (options.standardColumns === undefined || options.standardColumns === true)
+		{
+			columnDefs.push("`id` INTEGER PRIMARY KEY AUTOINCREMENT");
+			columnDefs.push("`createdAt` DATE NOT NULL");
+			columnDefs.push("`updatedAt` DATE NOT NULL");
+		}
+
 		for (let i=0; i<options.columns.length; i++)
 		{
 			let nv = namedValue(options.columns[i]);
@@ -860,6 +871,8 @@ export class SQL
 	 * 			unique: true,								// Optional, default = false
 	 * 			indexName: "Users_firstName_lastName",		// Optional, default synthesized from table and column names
 	 * 			columns: [
+	 * 				"email",		// Same as { email: "ASC" }
+	 * 				"-email",       // Same as { email: "DESC" }
 	 * 				{ lastName: "ASC" },
 	 * 				{ firstName: "DESC" },
 	 * 			],
@@ -877,8 +890,16 @@ export class SQL
 		{
 			if (typeof(options.columns[i]) === 'string')
 			{
-				columnDefs.push("`" + options.columns[i] + "` ASC");
-				columnNames.push(options.columns[i]);
+				if (options.columns[i].startsWith("-"))
+				{
+					columnDefs.push("`" + options.columns[i].substring(1) + "` DESC");
+					columnNames.push(options.columns[i].substring(1));
+				}
+				else
+				{
+					columnDefs.push("`" + options.columns[i] + "` ASC");
+					columnNames.push(options.columns[i]);
+				}
 			}
 			else
 			{
