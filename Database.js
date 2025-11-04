@@ -653,6 +653,10 @@ export class Database extends SQLiteDatabase
      */
 	setMetaValue(key, value)
 	{
+        // better-sqlite doesn't support booleans
+        if (typeof(value) === 'boolean')
+            value = value ? 1 : 0;
+
         let self = this;
 		return this.transactionSync(() => {
 			try
