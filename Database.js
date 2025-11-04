@@ -323,6 +323,8 @@ export class Database extends SQLiteDatabase
      */
     transactionSync(callback)
     {
+        let wasInTransaction = this._inTransaction;
+        this._inTransaction = true;
         this.run("SAVEPOINT tearstx");
         try
         {
@@ -340,6 +342,24 @@ export class Database extends SQLiteDatabase
             this.error && this.error(err.message);
             throw err;
         }
+        finally
+        {
+            this._inTransaction = wasInTransaction;
+        }
+    }
+
+    _inTransaction = false;
+
+    /**
+     * Rollback the current transaction
+     */
+    rollback()
+    {
+        if (!this._inTransaction)
+            throw new Error("Not currently in a transaction, can't rollback");
+        
+        this.run("ROLLBACK TO SAVEPOINT tearstx");
+        this.run("SAVEPOINT tearstx");
     }
 
     /**
