@@ -658,7 +658,7 @@ export class Database extends SQLiteDatabase
             value = value ? 1 : 0;
 
         let self = this;
-		return this.transactionSync(() => {
+		this.transactionSync(() => {
 			try
 			{
 				saveValue();
@@ -695,6 +695,27 @@ export class Database extends SQLiteDatabase
 			}
 		})
 	}
+
+    getMetaValues()
+    {
+        let rows = this.all("SELECT * FROM tears");
+        let result = {};
+        for (let r of rows)
+        {
+            result[r.key] = r.value;
+        }
+        return result;
+    }
+
+    setMetaValues(values)
+    {
+        this.transactionSync(() => {
+            for (let k of Object.keys(values))
+            {
+                this.setMetaValue(k, values[k]);
+            }
+        });
+    }
 
     /**
      * Executes database migration steps. Each step is a function that performs schema changes.
