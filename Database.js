@@ -670,6 +670,7 @@ export class Database extends SQLiteDatabase
 
 				this.run(SQL.createTable({
 					tableName: "tears",
+                    standardColumns: false,
 					columns:
 					[
 						{ key: "STRING" },
