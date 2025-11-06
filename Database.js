@@ -433,11 +433,11 @@ export class Database extends SQLiteDatabase
      * // Delete users over 65
      * db.delete('users', { age: { $gt: 65 } });
      */
-	delete(table, condition)
+	delete(table, ...condition)
 	{
 		return this.run(SQL
             .delete(table)
-            .where(condition)
+            .where(...condition)
             );
 	}
 
@@ -453,12 +453,12 @@ export class Database extends SQLiteDatabase
      * // Update a user's age
      * db.update('users', { age: 31 }, { id: 123 });
      */
-	update(table, values, condition)
+	update(table, values, ...condition)
 	{
 		return this.run(SQL
             .update(table)
             .set(values)
-            .where(condition)
+            .where(...condition)
         );
 	}
 
@@ -514,9 +514,9 @@ export class Database extends SQLiteDatabase
      * // Find user by multiple conditions
      * const user = db.findOne('users', { name: 'John', age: 30 });
      */
-    findOne(table, condition)
+    findOne(table, ...condition)
     {
-        return this.get(SQL.select().from(table).where(condition));
+        return this.get(SQL.select().from(table).where(...condition));
     }
 
     /**
@@ -530,9 +530,9 @@ export class Database extends SQLiteDatabase
      * // Find all adult users
      * const adults = db.findMany('users', { age: { $gte: 18 } });
      */
-    findMany(table, condition)
+    findMany(table, ...condition)
     {
-        return this.all(SQL.select().from(table).where(condition));
+        return this.all(SQL.select().from(table).where(...condition));
     }
 
     /**
