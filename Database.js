@@ -126,6 +126,14 @@ export class Database extends SQLiteDatabase
             params = Array.prototype.slice.call(arguments, 1);
             delete this._fndata;
         }
+
+        params = params.map(x => {
+            if (typeof(x) === 'boolean')
+                return x ? 1 : 0;
+            if (x instanceof Date)
+                return x.getTime();
+            return x;
+        });
     
         // Get prepared statement
         let stmt;
