@@ -46,6 +46,15 @@ export class Database extends SQLiteDatabase
     }
 
     /**
+     * Check if currently in a transactionSync callback
+     */
+    get inTransaction()
+    {
+        // NB: This replaced super.inTransaction
+        return this.#inTransaction;
+    }
+
+    /**
      * Prepares a SQL statement with caching support. Statements are cached for reuse,
      * improving performance when the same query is executed multiple times.
      * 
@@ -331,8 +340,8 @@ export class Database extends SQLiteDatabase
      */
     transactionSync(callback)
     {
-        let wasInTransaction = this._inTransaction;
-        this._inTransaction = true;
+        let wasInTransaction = this.#inTransaction;
+        this.#inTransaction = true;
         this.run("SAVEPOINT tearstx");
         try
         {
@@ -352,60 +361,24 @@ export class Database extends SQLiteDatabase
         }
         finally
         {
-            this._inTransaction = wasInTransaction;
+            this.#inTransaction = wasInTransaction;
         }
     }
 
-    _inTransaction = false;
+    #inTransaction = false;
 
     /**
      * Rollback the current transaction
      */
     rollback()
     {
-        if (!this._inTransaction)
+        if (!this.#inTransaction)
             throw new Error("Not currently in a transaction, can't rollback");
         
         this.run("ROLLBACK TO SAVEPOINT tearstx");
         this.run("SAVEPOINT tearstx");
     }
 
-    /**
-     * Wraps an async callback function in a transaction. This method is unsafe
-     * in that it's the client's responsibility to ensure all operations executed
-     * against the db instance belong to the transaction and not other requests.
-     * 
-     * @param {Function} callback - Async callback to perform transaction operations
-     * @returns {Promise<*>} A promise that resolves with the callback's return value
-     * @example
-     * 
-     * // Perform async operations in a transaction (use with caution)
-     * await db.transactionAsyncUnsafe(async () => {
-     *   db.run('INSERT INTO users (name) VALUES (?)', 'John');
-     *   await someAsyncOperation();
-     *   db.run('UPDATE accounts SET balance = balance - 100 WHERE userId = ?', 1);
-     * });
-     */
-    async transactionAsyncUnsafe(callback)
-    {
-        this.run("SAVEPOINT tearstx");
-        try
-        {
-            let retv = callback();
-
-            if (isPromise(retv))
-                retv = await retv;
-
-            this.run("RELEASE SAVEPOINT tearstx");
-            return retv;
-        }
-        catch (err)
-        {
-            this.run("ROLLBACK TO SAVEPOINT tearstx");
-            this.error && this.error(err.message);
-            throw err;
-        }
-    }
 
     /**
      * Convenience method to insert a row into a table.
