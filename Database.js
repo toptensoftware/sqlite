@@ -356,7 +356,7 @@ export class Database extends SQLiteDatabase
         catch (err)
         {
             this.run("ROLLBACK TO SAVEPOINT tearstx");
-            this.error && this.error(err.message);
+            this.run("RELEASE SAVEPOINT tearstx");
             throw err;
         }
         finally
@@ -376,7 +376,6 @@ export class Database extends SQLiteDatabase
             throw new Error("Not currently in a transaction, can't rollback");
         
         this.run("ROLLBACK TO SAVEPOINT tearstx");
-        this.run("SAVEPOINT tearstx");
     }
 
 
